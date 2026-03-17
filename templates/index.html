@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Integrated Share</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -12,7 +13,7 @@
 
     <header class="topbar">
         <div class="topbar-logo">
-            <div class="topbar-logo-icon"><i class="fas fa-share-nodes"></i></div>
+            <div class="topbar-logo-icon"><img src="{{ url_for('static', filename='images/Logo.png') }}" alt="Integrated Share"></div>
             <div>
                 <div class="topbar-logo-name">Integrated Share</div>
                 <div class="topbar-logo-sub">RUET Campus</div>
@@ -31,11 +32,14 @@
                 </div>
                 <span class="storage-compact-text" id="storageText">…</span>
             </div>
-            <button class="topbar-icon-btn" id="adminLink" style="display:none;"
+            <button class="topbar-icon-btn admin-shortcut" id="adminLink" style="display:none;"
                     onclick="window.location.href='/admin'" title="Admin Panel">
-                <i class="fas fa-shield-halved"></i>
+                <i class="fas fa-user-shield"></i>
             </button>
-            <div class="user-avatar" id="userAvatar">?</div>
+            <button class="user-avatar" id="userAvatar" title="Profile" onclick="window.location.href='/profile'">
+                <img id="userAvatarImg" alt="Profile image" style="display:none;">
+                <span id="userAvatarInitial">?</span>
+            </button>
             <button class="topbar-icon-btn" onclick="doLogout()" title="Sign out">
                 <i class="fas fa-right-from-bracket"></i>
             </button>
@@ -54,6 +58,9 @@
                 <a class="nav-item" data-filter="shared">
                     <i class="fas fa-user-group"></i> Shared with me
                 </a>
+                <a class="nav-item" data-filter="trash">
+                    <i class="fas fa-trash-can"></i> Trash
+                </a>
             </nav>
             <div class="sidebar-storage">
                 <div class="sidebar-storage-label">Storage used</div>
@@ -66,9 +73,20 @@
 
         <main class="drive-main">
             <div class="drive-toolbar">
-                <h2 class="section-title" id="sectionTitle">My Files</h2>
+                <div class="toolbar-path">
+                    <button class="toolbar-back-btn" id="folderBackBtn" style="display:none;" title="Back to My Files">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2 class="section-title" id="sectionTitle">My Files</h2>
+                </div>
                 <div class="toolbar-actions">
                     <span class="badge-light" id="fileCount">0 items</span>
+                    <button class="toolbar-btn" id="newFolderBtn" title="Create folder">
+                        <i class="fas fa-folder-plus"></i>
+                    </button>
+                    <button class="toolbar-btn" id="emptyTrashBtn" title="Empty trash" style="display:none;">
+                        <i class="fas fa-dumpster-fire"></i>
+                    </button>
                     <button class="toolbar-btn" id="clearAllBtn" title="Clear all my files">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -101,25 +119,91 @@
 
     <div class="modal-overlay" id="shareModal">
         <div class="modal">
-            <h3><i class="fas fa-share-alt"></i> Share File</h3>
+            <h3 id="shareModalTitle"><i class="fas fa-share-alt"></i> Share File</h3>
             <p id="shareModalFileName" style="font-size:.82rem;color:#5F6368;margin:.3rem 0 1rem;word-break:break-all;"></p>
             <div class="modal-section">
                 <label>Public link <span style="font-weight:400;text-transform:none;letter-spacing:0">(expires in 7 days)</span></label>
                 <button class="btn-primary" style="width:100%" onclick="generateShareLink()">
                     <i class="fas fa-link"></i> Copy link to clipboard
                 </button>
+                <input type="text" id="shareLinkOutput" readonly style="margin-top:.55rem" placeholder="Generated link appears here">
+                <div class="social-share-row" id="socialShareRow" style="display:none;">
+                    <a id="shareFacebook" class="social-share-btn fb" target="_blank" rel="noopener" title="Share on Facebook"><i class="fab fa-facebook-f"></i></a>
+                    <a id="shareWhatsapp" class="social-share-btn wa" target="_blank" rel="noopener" title="Share on WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                    <a id="shareMessenger" class="social-share-btn ms" target="_blank" rel="noopener" title="Share on Messenger"><i class="fab fa-facebook-messenger"></i></a>
+                    <a id="shareTelegram" class="social-share-btn tg" target="_blank" rel="noopener" title="Share on Telegram"><i class="fab fa-telegram-plane"></i></a>
+                </div>
             </div>
-            <div class="modal-divider">or share directly with a user</div>
-            <div class="modal-section">
+            <div class="modal-divider" id="shareUserDivider">or share directly with a user</div>
+            <div class="modal-section" id="shareUserSection">
                 <label>Username</label>
                 <input type="text" id="shareUsername" placeholder="Enter their username…">
             </div>
             <div class="modal-feedback" id="shareFeedback"></div>
             <div style="display:flex;gap:.5rem;margin-top:1rem">
-                <button class="btn-secondary" style="flex:1" onclick="shareToUser()">
+                <button class="btn-secondary" style="flex:1" onclick="shareToUser()" id="shareToUserBtn">
                     <i class="fas fa-user-plus"></i> Share
                 </button>
                 <button class="btn-cancel" onclick="closeShareModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="folderModal">
+        <div class="modal modal-sm">
+            <h3><i class="fas fa-folder-plus"></i> New folder</h3>
+            <div class="modal-section" style="margin-top:.9rem;">
+                <label>Folder name</label>
+                <input type="text" id="folderNameInput" maxlength="120" placeholder="Untitled folder">
+            </div>
+            <div class="modal-feedback" id="folderFeedback"></div>
+            <div style="display:flex;gap:.5rem;margin-top:1rem">
+                <button class="btn-secondary" style="flex:1" id="createFolderConfirmBtn">
+                    <i class="fas fa-check"></i> Create
+                </button>
+                <button class="btn-cancel" id="folderModalCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="renameModal">
+        <div class="modal modal-sm">
+            <h3 id="renameModalTitle"><i class="fas fa-pen"></i> Rename</h3>
+            <div class="modal-section" style="margin-top:.9rem;">
+                <label>New name</label>
+                <input type="text" id="renameNameInput" maxlength="255" placeholder="Enter new name">
+            </div>
+            <div class="modal-feedback" id="renameFeedback"></div>
+            <div style="display:flex;gap:.5rem;margin-top:1rem">
+                <button class="btn-secondary" style="flex:1" id="renameConfirmBtn">
+                    <i class="fas fa-check"></i> Rename
+                </button>
+                <button class="btn-cancel" id="renameCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal">
+            <h3 id="infoModalTitle"><i class="fas fa-circle-info"></i> Details</h3>
+            <div id="infoMetaRows" style="margin-top:.9rem;"></div>
+            <div id="infoSharesWrap" style="margin-top:1rem;">
+                <div class="modal-divider">sharing access</div>
+                <div id="infoSharesList"></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
+                <button class="btn-cancel" id="infoCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal modal-sm">
+            <h3 id="confirmTitle"><i class="fas fa-triangle-exclamation"></i> Confirm action</h3>
+            <p id="confirmMessage" style="font-size:.86rem;color:#5F6368;margin:.7rem 0 1rem;line-height:1.45;"></p>
+            <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                <button class="btn-cancel" id="confirmCancelBtn">Cancel</button>
+                <button class="btn-primary" id="confirmOkBtn"><i class="fas fa-trash"></i> Confirm</button>
             </div>
         </div>
     </div>
