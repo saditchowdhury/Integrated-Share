@@ -62,10 +62,10 @@ ok "Runtime directories ensured."
 # Install dependencies directly (no venv)
 info "Installing Python dependencies..."
 PIP_LOG="$(mktemp)"
-if pip3 install -r "${TARGET_DIR}/requirements.txt" 2>&1 | tee "${PIP_LOG}"; then
+if pip3 install --ignore-installed -r "${TARGET_DIR}/requirements.txt" 2>&1 | tee "${PIP_LOG}"; then
   ok "Dependencies installed."
-elif pip3 install --break-system-packages -r "${TARGET_DIR}/requirements.txt" 2>&1 | tee "${PIP_LOG}"; then
-  ok "Dependencies installed with --break-system-packages."
+elif pip3 install --ignore-installed --break-system-packages -r "${TARGET_DIR}/requirements.txt" 2>&1 | tee "${PIP_LOG}"; then
+  ok "Dependencies installed with --ignore-installed --break-system-packages."
 else
   info "pip3 install failed, trying distro packages fallback..."
   if command -v apt-get >/dev/null 2>&1; then
