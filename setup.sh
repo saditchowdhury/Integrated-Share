@@ -61,9 +61,15 @@ ok "Runtime directories ensured."
 
 # Install dependencies directly (no venv)
 info "Installing Python dependencies..."
-pip3 install --upgrade pip >/dev/null || pip3 install --upgrade pip --break-system-packages >/dev/null
-pip3 install -r "${TARGET_DIR}/requirements.txt" >/dev/null || pip3 install -r "${TARGET_DIR}/requirements.txt" --break-system-packages >/dev/null
-ok "Dependencies installed."
+if pip3 install -r "${TARGET_DIR}/requirements.txt" >/dev/null 2>&1; then
+  ok "Dependencies installed."
+elif pip3 install --break-system-packages -r "${TARGET_DIR}/requirements.txt" >/dev/null 2>&1; then
+  ok "Dependencies installed with --break-system-packages."
+elif python3 -m pip install --break-system-packages -r "${TARGET_DIR}/requirements.txt" >/dev/null 2>&1; then
+  ok "Dependencies installed with python -m pip fallback."
+else
+  fail "Could not install Python dependencies."
+fi
 
 # Set ownership and permissions
 info "Applying ownership and permissions..."
