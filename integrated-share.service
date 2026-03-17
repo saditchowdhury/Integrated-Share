@@ -1,0 +1,15 @@
+[Unit]
+Description=Integrated Share Gunicorn Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/Integrated-Share
+ExecStart=/usr/bin/env gunicorn --chdir /var/www/Integrated-Share -w 4 -b 0.0.0.0:5000 app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
